@@ -1,40 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/pages/api-reference/create-next-app).
+# NotesApp — Poznámková aplikace s rich-text editorem
 
-## Getting Started
+Tato aplikace je webový nástroj pro správu poznámek vytvořený v Next.js. Obsahuje bezpečné přihlašování, rich-text editor BlockNote s podporou zvýrazňování syntaxe (TypeScript atd.) a možnost exportu i importu dat.
 
-First, run the development server:
+## Požadavky a instalace
+
+Pro spuštění aplikace budete potřebovat:
+- **Node.js** (verze 18.x nebo novější)
+- **npm** (přibalen k Node.js)
+- **PostgreSQL** databázi (běžící lokálně nebo v cloudu, přidán docker compose)
+
+### Kroky k instalaci:
+
+1. **Klonování repozitáře:**
+   ```bash
+   git clone <url-repozitare>
+   cd notesapp
+   ```
+
+2. **Instalace závislostí:**
+   ```bash
+   npm install
+   ```
+
+## Nastavení prostředí (.env)
+
+Aplikace vyžaduje několik konfiguračních vars. Pro začátek zkopírujte vzorový soubor:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+V souboru `.env` upravte následující (viz `.env.example` pro inspiraci):
+- `DATABASE_URL`: URL vaší PostgreSQL databázi.
+- `NEXTAUTH_SECRET`: Náhodný string pro zabezpečení sessions.
+- `NEXTAUTH_URL`: `http://localhost:3000` pro lokální vývoj.
 
-You can start editing the page by modifying `pages/index.tsx`. The page auto-updates as you edit the file.
+## Migrace a spuštění
 
-[API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) can be accessed on [http://localhost:3000/api/hello](http://localhost:3000/api/hello). This endpoint can be edited in `pages/api/hello.ts`.
+Před prvním spuštěním je nutné připravit databázi a nahrát ukázková data.
 
-The `pages/api` directory is mapped to `/api/*`. Files in this directory are treated as [API routes](https://nextjs.org/docs/pages/building-your-application/routing/api-routes) instead of React pages.
+1. **Synchronizace databázového schématu:**
+   ```bash
+   npx prisma migrate dev --name init
+   ```
 
-This project uses [`next/font`](https://nextjs.org/docs/pages/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2. **Nahrání ukázkových dat (Seeding):**
+   Tento příkaz vytvoří demo uživatele a několik počátečních poznámek.
+   ```bash
+   npm run seed
+   ```
 
-## Learn More
+3. **Spuštění aplikace v development módu:**
+   ```bash
+   npm run dev
+   ```
+   Aplikace bude dostupná na `http://localhost:3000`.
 
-To learn more about Next.js, take a look at the following resources:
+## Demo uživatel
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn-pages-router) - an interactive Next.js tutorial.
+Pro rychlé vyzkoušení aplikace použijte po spuštění seed skriptu tyto údaje:
+- **Uživatelské jméno:** `demo`
+- **Heslo:** `ABCabc123`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Export a Import poznámek
 
-## Deploy on Vercel
+Aplikace umožňuje snadný přenos dat ve formátu JSON.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Export dat:
+- **Všechny poznámky:** Klikněte na tlačítko "Export" na hlavní stránce nebo navštivte API endpoint `/api/notes/export`.
+- **Jednotlivé poznámky:** Na stránce detailu konkrétní poznámky je k dispozici tlačítko pro export dané položky.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/pages/building-your-application/deploying) for more details.
+### Import dat:
+- Přejděte na stránku **Import** (`/notes/import`) přes horní menu.
+- Sem můžete nahrát nebo vložit JSON soubor s poznámkami. Aplikace automaticky rozpozná formát a přidá poznámky k vašemu účtu.
+
+---
+*Vytvořeno jako školní projekt.*
