@@ -1,11 +1,14 @@
-import { useSession } from "next-auth/react";
-import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import { GetServerSideProps } from "next";
+import { useState } from "react";
 import Link from "next/link";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Download, Upload, Pencil, Trash2 } from "lucide-react";
+import { prisma } from "@/lib/prisma";
+import { extractPlainText } from "@/lib/utils";
 
 interface Note {
     id: string;
@@ -14,52 +17,38 @@ interface Note {
     updatedAt: string;
 }
 
-export default function NotesPage() {
-    const { data: session, status } = useSession();
-    const router = useRouter();
-    const [notes, setNotes] = useState<Note[]>([]);
-
-    useEffect(() => {
-        if (status === "unauthenticated") router.push("/login");
-    }, [status, router]);
-
-    useEffect(() => {
-        if (status === "authenticated") {
-            fetch("/api/notes")
-                .then((res) => res.json())
-                .then(setNotes);
-        }
-    }, [status]);
+export default function NotesPage({ initialNotes }: { initialNotes: Note[] }) {
+    const [notes, setNotes] = useState<Note[]>(initialNotes);
 
     async function handleDelete(id: string) {
         if (!confirm("Opravdu smazat?")) return;
-        await fetch(`/api/notes/${id}`, { method: "DELETE" });
-        setNotes((prev) => prev.filter((n) => n.id !== id));
+        const res = await fetch(`/api/notes/${id}`, { method: "DELETE" });
+        if (res.ok) {
+            setNotes((prev) => prev.filter((n) => n.id !== id));
+        }
     }
 
     function handleExportAll() {
         window.location.href = "/api/notes/export";
     }
 
-    if (status === "loading") return null;
-
     return (
         <Layout>
             <div className="flex items-center justify-between mb-8">
                 <h1 className="text-3xl font-bold tracking-tight">Moje poznámky</h1>
                 <div className="flex gap-2">
-                    <Button variant="outline" onClick={handleExportAll}>
+                    <Button variant="outline" size="sm" onClick={handleExportAll}>
                         <Download className="w-4 h-4 mr-2" />
                         Export
                     </Button>
                     <Link href="/notes/import">
-                        <Button variant="outline">
+                        <Button variant="outline" size="sm">
                             <Upload className="w-4 h-4 mr-2" />
                             Import
                         </Button>
                     </Link>
                     <Link href="/notes/new">
-                        <Button>
+                        <Button size="sm">
                             <Plus className="w-4 h-4 mr-2" />
                             Nová
                         </Button>
@@ -68,46 +57,51 @@ export default function NotesPage() {
             </div>
 
             {notes.length === 0 ? (
-                <p className="text-muted-foreground text-center py-12">
-                    Zatím nemáte žádné poznámky.
-                </p>
+                <div className="text-center py-20 border-2 border-dashed border-border rounded-xl">
+                    <p className="text-muted-foreground">
+                        Zatím nemáte žádné poznámky.
+                    </p>
+                    <Link href="/notes/new" className="mt-4 inline-block">
+                        <Button variant="link">Vytvořit první poznámku</Button>
+                    </Link>
+                </div>
             ) : (
-                <div className="space-y-3">
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-2">
                     {notes.map((note) => (
                         <Card
                             key={note.id}
-                            className="transition-all hover:shadow-lg hover:border-primary/30"
+                            className="group transition-all hover:shadow-md hover:border-primary/40 flex flex-col"
                         >
-                            <CardHeader className="pb-2">
-                                <div className="flex items-center justify-between">
-                                    <Link href={`/notes/${note.id}`}>
-                                        <CardTitle className="text-lg hover:text-primary transition-colors cursor-pointer">
+                            <CardHeader className="pb-3 flex-none">
+                                <div className="flex items-start justify-between gap-4">
+                                    <Link href={`/notes/${note.id}`} className="flex-1">
+                                        <CardTitle className="text-lg leading-tight group-hover:text-primary transition-colors cursor-pointer">
                                             {note.title}
                                         </CardTitle>
                                     </Link>
-                                    <div className="flex gap-2">
+                                    <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
                                         <Link href={`/notes/${note.id}/edit`}>
-                                            <Button variant="ghost" size="sm">
-                                                <Pencil className="w-4 h-4" />
+                                            <Button variant="ghost" size="icon-sm">
+                                                <Pencil className="w-3.5 h-3.5 text-muted-foreground" />
                                             </Button>
                                         </Link>
                                         <Button
                                             variant="ghost"
-                                            size="sm"
+                                            size="icon-sm"
                                             onClick={() => handleDelete(note.id)}
                                             className="hover:text-destructive"
                                         >
-                                            <Trash2 className="w-4 h-4" />
+                                            <Trash2 className="w-3.5 h-3.5" />
                                         </Button>
                                     </div>
                                 </div>
                             </CardHeader>
-                            <CardContent>
-                                <p className="text-sm text-muted-foreground line-clamp-2">
-                                    {note.content || "Bez obsahu"}
+                            <CardContent className="flex-1 flex flex-col justify-between">
+                                <p className="text-sm text-muted-foreground line-clamp-3 mb-4 flex-1">
+                                    {extractPlainText(note.content)}
                                 </p>
-                                <p className="text-xs text-muted-foreground/60 mt-3">
-                                    Upraveno: {new Date(note.updatedAt).toLocaleString("cs-CZ")}
+                                <p className="text-[11px] font-medium uppercase tracking-wider text-muted-foreground/50">
+                                    Aktualizace: {new Date(note.updatedAt).toLocaleDateString("cs-CZ")}
                                 </p>
                             </CardContent>
                         </Card>
@@ -117,3 +111,28 @@ export default function NotesPage() {
         </Layout>
     );
 }
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+    const session = await getServerSession(context.req, context.res, authOptions);
+
+    if (!session) {
+        return {
+            redirect: {
+                destination: "/login",
+                permanent: false,
+            },
+        };
+    }
+
+    const notes = await prisma.note.findMany({
+        where: { userId: session.user.id },
+        orderBy: { updatedAt: "desc" },
+    });
+
+    return {
+        props: {
+            session: JSON.parse(JSON.stringify(session)),
+            initialNotes: JSON.parse(JSON.stringify(notes)),
+        },
+    };
+};

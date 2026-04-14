@@ -46,37 +46,47 @@ export default function EditNotePage({ note }: { note: Note }) {
 
     return (
         <Layout>
-            <h1 className="text-3xl font-bold tracking-tight mb-8">
-                Upravit poznámku
-            </h1>
-            <form onSubmit={handleSubmit} className="space-y-5">
-                <div className="space-y-2 max-w-xl">
-                    <Label htmlFor="title">Název</Label>
-                    <Input
-                        id="title"
-                        value={title}
-                        onChange={(e) => setTitle(e.target.value)}
-                        required
-                    />
+            <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="flex items-center justify-between mb-2">
+                    <h1 className="text-3xl font-bold tracking-tight">Upravit poznámku</h1>
+                    <div className="flex gap-2">
+                        <Button type="button" variant="outline" size="sm" onClick={() => router.back()}>
+                            <ArrowLeft className="w-4 h-4 mr-2" />
+                            Zrušit
+                        </Button>
+                        <Button type="submit" size="sm">
+                            <Save className="w-4 h-4 mr-2" />
+                            Uložit
+                        </Button>
+                    </div>
                 </div>
-                <div className="space-y-2">
-                    <Label>Obsah</Label>
-                    <Editor
-                        initialContent={note.content}
-                        onChange={setContent}
-                    />
+
+                <div className="space-y-4">
+                    <div className="space-y-2">
+                        <Input
+                            id="title"
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            placeholder="Zadejte název..."
+                            className="text-2xl font-bold h-12 border-none bg-transparent pl-[54px] pr-0 focus-visible:ring-0 placeholder:text-muted-foreground/30"
+                            required
+                        />
+                        <div className="h-px bg-border w-full" />
+                    </div>
+                    
+                    <div className="space-y-2">
+                        <Editor
+                            initialContent={note.content}
+                            onChange={setContent}
+                        />
+                    </div>
                 </div>
-                {error && <p className="text-sm text-destructive">{error}</p>}
-                <div className="flex gap-3 pt-2">
-                    <Button type="submit">
-                        <Save className="w-4 h-4 mr-2" />
-                        Uložit
-                    </Button>
-                    <Button type="button" variant="outline" onClick={() => router.back()}>
-                        <ArrowLeft className="w-4 h-4 mr-2" />
-                        Zpět
-                    </Button>
-                </div>
+                
+                {error && (
+                    <div className="p-3 rounded-lg bg-destructive/10 text-destructive text-sm font-medium">
+                        {error}
+                    </div>
+                )}
             </form>
         </Layout>
     );
