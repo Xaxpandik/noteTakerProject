@@ -3,13 +3,15 @@ import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import { useState } from "react";
+import dynamic from "next/dynamic";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Save, ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+
+const Editor = dynamic(() => import("@/components/Editor"), { ssr: false });
 
 interface Note {
     id: string;
@@ -47,8 +49,8 @@ export default function EditNotePage({ note }: { note: Note }) {
             <h1 className="text-3xl font-bold tracking-tight mb-8">
                 Upravit poznámku
             </h1>
-            <form onSubmit={handleSubmit} className="space-y-5 max-w-xl">
-                <div className="space-y-2">
+            <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-2 max-w-xl">
                     <Label htmlFor="title">Název</Label>
                     <Input
                         id="title"
@@ -58,12 +60,10 @@ export default function EditNotePage({ note }: { note: Note }) {
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="content">Obsah</Label>
-                    <Textarea
-                        id="content"
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        rows={12}
+                    <Label>Obsah</Label>
+                    <Editor
+                        initialContent={note.content}
+                        onChange={setContent}
                     />
                 </div>
                 {error && <p className="text-sm text-destructive">{error}</p>}

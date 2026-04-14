@@ -3,12 +3,15 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
+import dynamic from "next/dynamic";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Save, ArrowLeft } from "lucide-react";
+
+// Dynamically import the editor with no SSR
+const Editor = dynamic(() => import("@/components/Editor"), { ssr: false });
 
 export default function NewNotePage() {
     const router = useRouter();
@@ -50,14 +53,8 @@ export default function NewNotePage() {
                     />
                 </div>
                 <div className="space-y-2">
-                    <Label htmlFor="content">Obsah</Label>
-                    <Textarea
-                        id="content"
-                        value={content}
-                        onChange={(e) => setContent(e.target.value)}
-                        placeholder="Začněte psát..."
-                        rows={12}
-                    />
+                    <Label>Obsah</Label>
+                    <Editor onChange={setContent} />
                 </div>
                 {error && <p className="text-sm text-destructive">{error}</p>}
                 <div className="flex gap-3 pt-2">

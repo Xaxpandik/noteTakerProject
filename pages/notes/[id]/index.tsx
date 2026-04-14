@@ -3,10 +3,13 @@ import { authOptions } from "@/pages/api/auth/[...nextauth]";
 import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Download, Pencil, ArrowLeft } from "lucide-react";
 import { prisma } from "@/lib/prisma";
+
+const Editor = dynamic(() => import("@/components/Editor"), { ssr: false });
 
 interface Note {
     id: string;
@@ -48,10 +51,8 @@ export default function NoteDetailPage({ note }: { note: Note }) {
                     </Button>
                 </div>
             </div>
-            <div className="prose prose-invert max-w-none">
-                <p className="whitespace-pre-wrap text-foreground/90 leading-relaxed">
-                    {note.content || "Bez obsahu"}
-                </p>
+            <div className="mb-8">
+                <Editor initialContent={note.content} editable={false} />
             </div>
             <div className="mt-8 pt-4 border-t border-border text-sm text-muted-foreground">
                 <p>Vytvořeno: {new Date(note.createdAt).toLocaleString("cs-CZ")}</p>
