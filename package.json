@@ -10,6 +10,7 @@
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@blocknote/code-block": "^0.48.0",
     "@blocknote/core": "^0.48.0",
     "@blocknote/react": "^0.48.0",
     "@blocknote/shadcn": "^0.48.0",
