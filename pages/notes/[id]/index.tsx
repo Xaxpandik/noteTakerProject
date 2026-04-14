@@ -1,10 +1,12 @@
-import { useSession } from "next-auth/react";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
 import Link from "next/link";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Download, Pencil, ArrowLeft } from "lucide-react";
+import { prisma } from "@/lib/prisma";
 
 interface Note {
     id: string;
@@ -14,32 +16,11 @@ interface Note {
     updatedAt: string;
 }
 
-export default function NoteDetailPage() {
-    const { status } = useSession();
+export default function NoteDetailPage({ note }: { note: Note }) {
     const router = useRouter();
-    const { id } = router.query;
-    const [note, setNote] = useState<Note | null>(null);
-
-    useEffect(() => {
-        if (status === "unauthenticated") router.push("/login");
-    }, [status, router]);
-
-    useEffect(() => {
-        if (id && status === "authenticated") {
-            fetch(`/api/notes/${id}`)
-                .then((res) => {
-                    if (!res.ok) throw new Error();
-                    return res.json();
-                })
-                .then(setNote)
-                .catch(() => router.push("/notes"));
-        }
-    }, [id, status, router]);
-
-    if (!note) return null;
 
     function handleExport() {
-        window.location.href = `/api/notes/export?id=${note!.id}`;
+        window.location.href = `/api/notes/export?id=${note.id}`;
     }
 
     return (
@@ -79,3 +60,37 @@ export default function NoteDetailPage() {
         </Layout>
     );
 }
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+    const session = await getServerSession(context.req, context.res, authOptions);
+
+    if (!session) {
+        return {
+            redirect: {
+                destination: "/login",
+                permanent: false,
+            },
+        };
+    }
+
+    const { id } = context.query;
+    const note = await prisma.note.findUnique({
+        where: { id: id as string },
+    });
+
+    if (!note || note.userId !== session.user.id) {
+        return {
+            redirect: {
+                destination: "/notes",
+                permanent: false,
+            },
+        };
+    }
+
+    return {
+        props: {
+            session: JSON.parse(JSON.stringify(session)),
+            note: JSON.parse(JSON.stringify(note)),
+        },
+    };
+};

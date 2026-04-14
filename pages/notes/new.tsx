@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { useSession } from "next-auth/react";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -9,16 +11,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Save, ArrowLeft } from "lucide-react";
 
 export default function NewNotePage() {
-    const { status } = useSession();
     const router = useRouter();
     const [title, setTitle] = useState("");
     const [content, setContent] = useState("");
     const [error, setError] = useState("");
-
-    if (status === "unauthenticated") {
-        router.push("/login");
-        return null;
-    }
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
@@ -78,3 +74,22 @@ export default function NewNotePage() {
         </Layout>
     );
 }
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+    const session = await getServerSession(context.req, context.res, authOptions);
+
+    if (!session) {
+        return {
+            redirect: {
+                destination: "/login",
+                permanent: false,
+            },
+        };
+    }
+
+    return {
+        props: {
+            session: JSON.parse(JSON.stringify(session)),
+        },
+    };
+    };

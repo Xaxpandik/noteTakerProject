@@ -1,47 +1,33 @@
-import { useSession } from "next-auth/react";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/pages/api/auth/[...nextauth]";
+import { GetServerSideProps } from "next";
 import { useRouter } from "next/router";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Layout from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Save, ArrowLeft } from "lucide-react";
+import { prisma } from "@/lib/prisma";
 
-export default function EditNotePage() {
-    const { status } = useSession();
+interface Note {
+    id: string;
+    title: string;
+    content: string;
+}
+
+export default function EditNotePage({ note }: { note: Note }) {
     const router = useRouter();
-    const { id } = router.query;
-    const [title, setTitle] = useState("");
-    const [content, setContent] = useState("");
+    const [title, setTitle] = useState(note.title);
+    const [content, setContent] = useState(note.content);
     const [error, setError] = useState("");
-    const [loaded, setLoaded] = useState(false);
-
-    useEffect(() => {
-        if (status === "unauthenticated") router.push("/login");
-    }, [status, router]);
-
-    useEffect(() => {
-        if (id && status === "authenticated") {
-            fetch(`/api/notes/${id}`)
-                .then((res) => {
-                    if (!res.ok) throw new Error();
-                    return res.json();
-                })
-                .then((note) => {
-                    setTitle(note.title);
-                    setContent(note.content);
-                    setLoaded(true);
-                })
-                .catch(() => router.push("/notes"));
-        }
-    }, [id, status, router]);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError("");
 
-        const res = await fetch(`/api/notes/${id}`, {
+        const res = await fetch(`/api/notes/${note.id}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ title, content }),
@@ -53,10 +39,8 @@ export default function EditNotePage() {
             return;
         }
 
-        router.push(`/notes/${id}`);
+        router.push(`/notes/${note.id}`);
     }
-
-    if (!loaded) return null;
 
     return (
         <Layout>
@@ -97,3 +81,37 @@ export default function EditNotePage() {
         </Layout>
     );
 }
+
+export const getServerSideProps: GetServerSideProps = async (context) => {
+    const session = await getServerSession(context.req, context.res, authOptions);
+
+    if (!session) {
+        return {
+            redirect: {
+                destination: "/login",
+                permanent: false,
+            },
+        };
+    }
+
+    const { id } = context.query;
+    const note = await prisma.note.findUnique({
+        where: { id: id as string },
+    });
+
+    if (!note || note.userId !== session.user.id) {
+        return {
+            redirect: {
+                destination: "/notes",
+                permanent: false,
+            },
+        };
+    }
+
+    return {
+        props: {
+            session: JSON.parse(JSON.stringify(session)),
+            note: JSON.parse(JSON.stringify(note)),
+        },
+    };
+    };
